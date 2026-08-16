@@ -48,11 +48,8 @@ Scient-Devops-Task-1/
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/suryaprakash2357/Scient-Devops-Task-1.git
 cd Scient-Devops-Task-1/backend
-
-# Install dependencies
 npm install
 ```
 
@@ -71,10 +68,7 @@ EMAIL_PASS=your_app_password
 ### Running the app
 
 ```bash
-# Development (auto-restart with nodemon)
 npm run dev
-
-# Production
 npm start
 ```
 
