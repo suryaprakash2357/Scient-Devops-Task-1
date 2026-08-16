@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Progress Tracking Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7fc; color: #1e2a3a; line-height: 1.6; }
+        a { text-decoration: none; color: inherit; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        .header { background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 16px 0; position: sticky; top: 0; z-index: 100; }
+        .header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .logo { font-size: 1.6rem; font-weight: 700; color: #2c3e8f; }
+        .logo i { color: #4a6cf7; margin-right: 8px; }
+        .nav-links { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .nav-links a { font-weight: 500; color: #2c3e8f; padding: 6px 12px; border-radius: 6px; transition: background 0.2s; }
+        .nav-links a:hover { background: #eef2ff; }
+        .nav-links .btn-logout { background: #e74c3c; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .nav-links .btn-logout:hover { background: #c0392b; }
+        .user-badge { background: #eef2ff; padding: 4px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 500; color: #2c3e8f; }
+
+        .btn { display: inline-block; padding: 10px 22px; border: none; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .btn-primary { background: #4a6cf7; color: #fff; }
+        .btn-primary:hover { background: #3b5de7; transform: translateY(-1px); }
+        .btn-success { background: #27ae60; color: #fff; }
+        .btn-success:hover { background: #1e8449; }
+        .btn-danger { background: #e74c3c; color: #fff; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-outline { background: transparent; border: 2px solid #4a6cf7; color: #4a6cf7; }
+        .btn-outline:hover { background: #4a6cf7; color: #fff; }
+        .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+        .btn-block { width: 100%; }
+
+        .card { background: #ffffff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 24px; margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+        .card-title { font-size: 1.3rem; font-weight: 700; color: #1e2a3a; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.9rem; }
+        .form-control { width: 100%; padding: 10px 14px; border: 2px solid #e0e6ed; border-radius: 8px; font-size: 1rem; transition: border 0.2s; background: #fafbfc; }
+        .form-control:focus { outline: none; border-color: #4a6cf7; background: #fff; }
+        select.form-control { appearance: auto; }
+        textarea.form-control { resize: vertical; min-height: 80px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+        /* ===== TASK ITEM ===== */
+        .task-item { border: 1px solid #eef2f7; border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; transition: box-shadow 0.2s; background: #fafbfc; }
+        .task-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .task-info { flex: 1; min-width: 200px; }
+        .task-info h4 { font-size: 1.05rem; margin-bottom: 4px; }
+        .task-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.85rem; color: #5a6a7a; }
+        .task-meta span { display: inline-flex; align-items: center; gap: 4px; }
+        .task-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+        .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-pending { background: #fef3c7; color: #b45309; }
+        .badge-progress { background: #dbeafe; color: #1e40af; }
+        .badge-blocked { background: #fce4e4; color: #b91c1c; }
+        .badge-done { background: #d1fae5; color: #065f46; }
+        .badge-high { background: #fce4e4; color: #b91c1c; }
+        .badge-medium { background: #fef3c7; color: #b45309; }
+        .badge-low { background: #dbeafe; color: #1e40af; }
+        .tag { display: inline-block; background: #eef2ff; color: #2c3e8f; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; }
+
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
+        .filter-bar select, .filter-bar input { padding: 8px 12px; border: 2px solid #e0e6ed; border-radius: 8px; font-size: 0.9rem; background: #fafbfc; }
+        .filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: #4a6cf7; }
+
+        .audit-item { border-left: 3px solid #4a6cf7; padding: 8px 16px; margin-bottom: 8px; background: #f8faff; border-radius: 0 6px 6px 0; font-size: 0.9rem; }
+        .audit-item .time { color: #7a8a9a; font-size: 0.8rem; }
+
+        .comment { border-bottom: 1px solid #eef2f7; padding: 12px 0; }
+        .comment:last-child { border-bottom: none; }
+        .comment .author { font-weight: 600; color: #2c3e8f; }
+        .comment .time { color: #7a8a9a; font-size: 0.8rem; margin-left: 8px; }
+
+        .meeting-item { border: 1px solid #eef2f7; border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; background: #fafbfc; }
+        .meeting-item h4 { font-size: 1.05rem; }
+
+        .auth-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
+        .auth-card { max-width: 440px; width: 100%; padding: 40px 32px; background: #fff; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+        .auth-card h2 { text-align: center; margin-bottom: 24px; color: #1e2a3a; }
+        .auth-card .btn { margin-top: 8px; }
+        .auth-card .text-center { text-align: center; margin-top: 16px; }
+        .auth-card .text-center a { color: #4a6cf7; font-weight: 600; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-box { background: #fff; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .stat-box .number { font-size: 2rem; font-weight: 700; color: #2c3e8f; }
+        .stat-box .label { font-size: 0.85rem; color: #5a6a7a; }
+
+        .toast { position: fixed; bottom: 30px; right: 30px; background: #1e2a3a; color: #fff; padding: 14px 24px; border-radius: 10px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0; transition: all 0.4s ease; z-index: 999; max-width: 400px; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: #27ae60; }
+        .toast.error { background: #e74c3c; }
+        .toast.info { background: #4a6cf7; }
+
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; border-bottom: 2px solid #eef2f7; }
+        .tab-btn { padding: 10px 20px; border: none; background: transparent; font-weight: 600; color: #5a6a7a; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; font-size: 0.95rem; }
+        .tab-btn.active { color: #2c3e8f; border-bottom-color: #4a6cf7; }
+        .tab-btn:hover { color: #2c3e8f; }
+
+        @media (max-width: 768px) {
+            .header .container { flex-direction: column; gap: 10px; }
+            .nav-links { justify-content: center; }
+            .task-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .task-actions { width: 100%; justify-content: flex-start; }
+            .filter-bar { flex-direction: column; align-items: stretch; }
+        }
+        .text-muted { color: #7a8a9a; }
+        .mt-20 { margin-top: 20px; }
+        .mb-10 { margin-bottom: 10px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .spinner { border: 4px solid #eef2f7; border-top: 4px solid #4a6cf7; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 40px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<div id="app">
+    <header class="header" id="mainHeader">
+        <div class="container">
+            <div class="logo"><i class="fas fa-tasks"></i> ProgressPortal</div>
+            <nav class="nav-links" id="navLinks"></nav>
+        </div>
+    </header>
+    <main class="container" id="mainContent"></main>
+</div>
+
+<script>
+
+const API_URL = 'http://localhost:5000/api';
+let state = {
+    token: localStorage.getItem('token') || null,
+    user: null,
+    tasks: [],
+    meetings: [],
+    currentView: 'dashboard',
+    selectedTaskId: null,
+    filterStatus: 'all',
+    filterAssignee: 'all',
+    sortBy: 'deadline',
+};
+let cachedUsers = null;
+
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type + ' show';
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function formatDateShort(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString();
+}
+function isOverdue(deadline) {
+    if (!deadline) return false;
+    return new Date(deadline) < new Date();
+}
+function statusBadge(status) {
+    const map = { 'Pending':'badge-pending', 'In Progress':'badge-progress', 'Blocked':'badge-blocked', 'Done':'badge-done' };
+    return map[status] || 'badge-pending';
+}
+function priorityBadge(priority) {
+    const map = { 'High':'badge-high', 'Medium':'badge-medium', 'Low':'badge-low' };
+    return map[priority] || 'badge-medium';
+}
+function getStatusOptions() { return ['Pending', 'In Progress', 'Blocked', 'Done']; }
+function getPriorityOptions() { return ['High', 'Medium', 'Low']; }
+
+async function apiCall(endpoint, method = 'GET', body = null) {
+    const url = API_URL + endpoint;
+    const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+    };
+    if (state.token) options.headers['Authorization'] = 'Bearer ' + state.token;
+    if (body) options.body = JSON.stringify(body);
+    const res = await fetch(url, options);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'API error');
+    return data;
+}
+
+async function login(email, password) {
+    const data = await apiCall('/auth/login', 'POST', { email, password });
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem('token', data.token);
+    showToast('Welcome back, ' + data.user.name + '!', 'success');
+    await renderApp();
+}
+async function register(name, email, password, role) {
+    const data = await apiCall('/auth/register', 'POST', { name, email, password, role });
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem('token', data.token);
+    showToast('Account created! Welcome ' + data.user.name, 'success');
+    await renderApp();
+}
+function logout() {
+    state.token = null;
+    state.user = null;
+    localStorage.removeItem('token');
+    showToast('Logged out', 'info');
+    renderApp();
+}
+
+async function fetchTasks() {
+    try {
+        const data = await apiCall('/tasks');
+        state.tasks = data;
+        return data;
+    } catch { state.tasks = []; return []; }
+}
+async function createTask(taskData) {
+    const data = await apiCall('/tasks', 'POST', taskData);
+    showToast('Task created!', 'success');
+    await fetchTasks();
+    await renderApp();
+    return data;
+}
+async function updateTaskStatus(taskId, status, note) {
+    const data = await apiCall('/tasks/' + taskId + '/status', 'PATCH', { status, note });
+    showToast('Status updated!', 'success');
+    await fetchTasks();
+    await renderApp();
+    return data;
+}
+async function addComment(taskId, text) {
+    const data = await apiCall('/tasks/' + taskId + '/comments', 'POST', { text });
+    showToast('Comment added!', 'success');
+    await fetchTasks();
+    await renderApp();
+    return data;
+}
+
+async function fetchMeetings() {
+    try {
+        const data = await apiCall('/meetings');
+        state.meetings = data;
+        return data;
+    } catch { state.meetings = []; return []; }
+}
+async function createMeeting(meetingData) {
+    const data = await apiCall('/meetings', 'POST', meetingData);
+    showToast('Meeting created!', 'success');
+    await fetchMeetings();
+    await renderApp();
+    return data;
+}
+
+async function triggerReminders() {
+    await apiCall('/reminders/trigger', 'POST');
+    showToast('Reminders sent!', 'success');
+}
+
+async function getAllUsers() {
+    if (cachedUsers) return cachedUsers;
+    try {
+        const res = await fetch(API_URL + '/users', {
+            headers: { 'Authorization': 'Bearer ' + state.token }
+        });
+        if (!res.ok) throw new Error('Failed to fetch users');
+        const users = await res.json();
+        cachedUsers = users;
+        return users;
+    } catch (err) {
+        console.warn('Could not load user list, using fallback:', err);
+        if (state.user) {
+            return [{ _id: state.user._id, name: state.user.name, role: state.user.role }];
+        }
+        return [];
+    }
+}
+
+function renderNav() {
+    const nav = document.getElementById('navLinks');
+    if (!state.user) {
+        nav.innerHTML = `<a href="#" onclick="navigate('login')">Login</a>
+                         <a href="#" onclick="navigate('register')">Register</a>`;
+        return;
+    }
+    const isLead = state.user.role === 'lead';
+    nav.innerHTML = `
+        <a href="#" onclick="navigate('dashboard')"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="#" onclick="navigate('tasks')"><i class="fas fa-list"></i> All Tasks</a>
+        <a href="#" onclick="navigate('mytasks')"><i class="fas fa-user-check"></i> My Tasks</a>
+        ${isLead ? `<a href="#" onclick="navigate('createtask')"><i class="fas fa-plus"></i> New Task</a>` : ''}
+        ${isLead ? `<a href="#" onclick="navigate('meetings')"><i class="fas fa-calendar"></i> Meetings</a>` : ''}
+        ${isLead ? `<a href="#" onclick="navigate('createmeeting')"><i class="fas fa-calendar-plus"></i> New Meeting</a>` : ''}
+        <span class="user-badge"><i class="fas fa-user"></i> ${state.user.name} (${state.user.role})</span>
+        <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    `;
+}
+
+async function renderMain() {
+    const main = document.getElementById('mainContent');
+    if (!state.user) {
+        if (state.currentView === 'register') main.innerHTML = renderRegister();
+        else main.innerHTML = renderLogin();
+        return;
+    }
+    switch (state.currentView) {
+        case 'dashboard': main.innerHTML = renderDashboard(); break;
+        case 'tasks': main.innerHTML = renderAllTasks(); break;
+        case 'mytasks': main.innerHTML = renderMyTasks(); break;
+        case 'taskdetail': main.innerHTML = renderTaskDetail(); break;
+        case 'createtask': main.innerHTML = await renderCreateTask(); break;
+        case 'meetings': main.innerHTML = renderMeetings(); break;
+        case 'createmeeting': main.innerHTML = await renderCreateMeeting(); break;
+        default: main.innerHTML = renderDashboard();
+    }
+    bindEvents();
+}
+
+async function renderApp() {
+    renderNav();
+    await renderMain();
+}
+
+function renderLogin() {
+    return `
+        <div class="auth-page">
+            <div class="auth-card">
+                <h2><i class="fas fa-sign-in-alt" style="color:#4a6cf7;"></i> Login</h2>
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group"><label>Email</label><input class="form-control" type="email" id="loginEmail" placeholder="you@example.com" required /></div>
+                    <div class="form-group"><label>Password</label><input class="form-control" type="password" id="loginPassword" placeholder="••••••••" required /></div>
+                    <button class="btn btn-primary btn-block" type="submit">Login</button>
+                </form>
+                <div class="text-center">Don't have an account? <a href="#" onclick="navigate('register')">Register</a></div>
+            </div>
+        </div>
+    `;
+}
+function renderRegister() {
+    return `
+        <div class="auth-page">
+            <div class="auth-card">
+                <h2><i class="fas fa-user-plus" style="color:#4a6cf7;"></i> Register</h2>
+                <form id="registerForm" onsubmit="handleRegister(event)">
+                    <div class="form-group"><label>Full Name</label><input class="form-control" type="text" id="regName" placeholder="John Doe" required /></div>
+                    <div class="form-group"><label>Email</label><input class="form-control" type="email" id="regEmail" placeholder="you@example.com" required /></div>
+                    <div class="form-group"><label>Password</label><input class="form-control" type="password" id="regPassword" placeholder="••••••••" required minlength="4" /></div>
+                    <div class="form-group"><label>Role</label><select class="form-control" id="regRole"><option value="assignee">Assignee</option><option value="lead">Lead / Admin</option></select></div>
+                    <button class="btn btn-primary btn-block" type="submit">Create Account</button>
+                </form>
+                <div class="text-center">Already have an account? <a href="#" onclick="navigate('login')">Login</a></div>
+            </div>
+        </div>
+    `;
+}
+
+function renderDashboard() {
+    const tasks = state.tasks;
+    const meetings = state.meetings;
+    const total = tasks.length;
+    const pending = tasks.filter(t => t.status === 'Pending').length;
+    const inProgress = tasks.filter(t => t.status === 'In Progress').length;
+    const done = tasks.filter(t => t.status === 'Done').length;
+    const overdue = tasks.filter(t => t.status !== 'Done' && isOverdue(t.deadline)).length;
+    const myTasks = tasks.filter(t => t.assignees && t.assignees.includes(state.user._id));
+    const upcoming = meetings
+        .filter(m => new Date(m.dateTime) > new Date())
+        .sort((a,b) => new Date(a.dateTime) - new Date(b.dateTime))
+        .slice(0,5);
+    const isLead = state.user.role === 'lead';
+
+    return `
+        <h2 style="margin-bottom:20px;"><i class="fas fa-chart-pie"></i> Dashboard</h2>
+        <div class="stats-grid">
+            <div class="stat-box"><div class="number">${total}</div><div class="label">Total Tasks</div></div>
+            <div class="stat-box"><div class="number">${pending}</div><div class="label">Pending</div></div>
+            <div class="stat-box"><div class="number">${inProgress}</div><div class="label">In Progress</div></div>
+            <div class="stat-box"><div class="number">${done}</div><div class="label">Done</div></div>
+            <div class="stat-box" style="border-left:4px solid #e74c3c;"><div class="number" style="color:#e74c3c;">${overdue}</div><div class="label">Overdue</div></div>
+        </div>
+        <div class="flex-between" style="margin-bottom:16px;">
+            <h3><i class="fas fa-tasks"></i> My Tasks (${myTasks.length})</h3>
+            <a href="#" onclick="navigate('mytasks')" class="btn btn-primary btn-sm">View All</a>
+        </div>
+        ${myTasks.length === 0 ? '<p class="text-muted">No tasks assigned to you yet.</p>' : ''}
+        ${myTasks.slice(0,5).map(t => taskItemHTML(t)).join('')}
+        ${isLead ? `
+            <div class="flex-between" style="margin-top:24px;margin-bottom:16px;">
+                <h3><i class="fas fa-calendar"></i> Upcoming Meetings</h3>
+                <a href="#" onclick="navigate('meetings')" class="btn btn-primary btn-sm">View All</a>
+            </div>
+            ${upcoming.length === 0 ? '<p class="text-muted">No upcoming meetings.</p>' : ''}
+            ${upcoming.map(m => meetingItemHTML(m)).join('')}
+        ` : ''}
+        ${isLead ? `
+            <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+                <a href="#" onclick="navigate('createtask')" class="btn btn-primary"><i class="fas fa-plus"></i> New Task</a>
+                <a href="#" onclick="navigate('createmeeting')" class="btn btn-success"><i class="fas fa-calendar-plus"></i> New Meeting</a>
+                <button onclick="triggerReminders()" class="btn btn-outline"><i class="fas fa-bell"></i> Send Reminders Now</button>
+            </div>
+        ` : ''}
+    `;
+}
+
+function renderAllTasks() {
+    if (state.user.role !== 'lead') return '<p class="text-muted">Only leads can view all tasks.</p>';
+    let filtered = [...state.tasks];
+    if (state.filterStatus !== 'all') filtered = filtered.filter(t => t.status === state.filterStatus);
+    if (state.filterAssignee !== 'all') filtered = filtered.filter(t => t.assignees && t.assignees.includes(state.filterAssignee));
+    if (state.sortBy === 'deadline') filtered.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+    else if (state.sortBy === 'priority') { const order = { 'High':0, 'Medium':1, 'Low':2 }; filtered.sort((a,b) => order[a.priority] - order[b.priority]); }
+    else if (state.sortBy === 'status') { const order = { 'Pending':0, 'In Progress':1, 'Blocked':2, 'Done':3 }; filtered.sort((a,b) => order[a.status] - order[b.status]); }
+    const users = getUniqueAssignees(state.tasks);
+    return `
+        <div class="flex-between" style="margin-bottom:12px;">
+            <h2><i class="fas fa-list"></i> All Tasks</h2>
+            <a href="#" onclick="navigate('createtask')" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Task</a>
+        </div>
+        <div class="filter-bar">
+            <select id="filterStatus" onchange="applyFilters()">
+                <option value="all">All Status</option>
+                ${getStatusOptions().map(s => `<option value="${s}" ${state.filterStatus===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+            <select id="filterAssignee" onchange="applyFilters()">
+                <option value="all">All Assignees</option>
+                ${users.map(u => `<option value="${u._id}" ${state.filterAssignee===u._id?'selected':''}>${u.name}</option>`).join('')}
+            </select>
+            <select id="sortBy" onchange="applyFilters()">
+                <option value="deadline" ${state.sortBy==='deadline'?'selected':''}>Sort by Deadline</option>
+                <option value="priority" ${state.sortBy==='priority'?'selected':''}>Sort by Priority</option>
+                <option value="status" ${state.sortBy==='status'?'selected':''}>Sort by Status</option>
+            </select>
+            <span class="text-muted" style="font-size:0.9rem;">${filtered.length} tasks</span>
+        </div>
+        ${filtered.length === 0 ? '<p class="text-muted">No tasks match.</p>' : ''}
+        ${filtered.map(t => taskItemHTML(t, true)).join('')}
+    `;
+}
+
+function renderMyTasks() {
+    const myTasks = state.tasks.filter(t => t.assignees && t.assignees.includes(state.user._id));
+    let filtered = [...myTasks];
+    if (state.filterStatus !== 'all') filtered = filtered.filter(t => t.status === state.filterStatus);
+    return `
+        <h2 style="margin-bottom:12px;"><i class="fas fa-user-check"></i> My Tasks</h2>
+        <div class="filter-bar">
+            <select id="filterStatus" onchange="applyFilters()">
+                <option value="all">All Status</option>
+                ${getStatusOptions().map(s => `<option value="${s}" ${state.filterStatus===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+            <span class="text-muted" style="font-size:0.9rem;">${filtered.length} tasks</span>
+        </div>
+        ${filtered.length === 0 ? '<p class="text-muted">No tasks assigned.</p>' : ''}
+        ${filtered.map(t => taskItemHTML(t, false, true)).join('')}
+    `;
+}
+
+function renderTaskDetail() {
+    const task = state.tasks.find(t => t._id === state.selectedTaskId);
+    if (!task) return '<p class="text-muted">Task not found. <a href="#" onclick="navigate(\'tasks\')">Go back</a></p>';
+    const isLead = state.user.role === 'lead';
+    const isAssignee = task.assignees && task.assignees.includes(state.user._id);
+    const canUpdate = isLead || isAssignee;
+    return `
+        <div class="flex-between" style="margin-bottom:16px;">
+            <h2><i class="fas fa-tasks"></i> ${task.title}</h2>
+            <a href="#" onclick="navigate('tasks')" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+        <div class="card">
+            <p><strong>Description:</strong> ${task.description || '—'}</p>
+            <div class="task-meta" style="margin-top:8px;">
+                <span><strong>Status:</strong> <span class="badge ${statusBadge(task.status)}">${task.status}</span></span>
+                <span><strong>Priority:</strong> <span class="badge ${priorityBadge(task.priority)}">${task.priority}</span></span>
+                <span><strong>Deadline:</strong> ${formatDate(task.deadline)} ${isOverdue(task.deadline) && task.status !== 'Done' ? 'Overdue' : ''}</span>
+                <span><strong>Assignees:</strong> ${task.assignees && task.assignees.length ? task.assignees.join(', ') : '—'}</span>
+                <span><strong>Tags:</strong> ${task.tags && task.tags.length ? task.tags.map(t => `<span class="tag">${t}</span>`).join(' ') : '—'}</span>
+                <span><strong>Created:</strong> ${formatDate(task.createdAt)}</span>
+            </div>
+        </div>
+        ${canUpdate ? `
+            <div class="card">
+                <h4>Update Status</h4>
+                <form id="statusUpdateForm" onsubmit="handleStatusUpdate(event, '${task._id}')" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+                    <div style="flex:1; min-width:160px;">
+                        <label>Status</label>
+                        <select class="form-control" id="statusSelect">${getStatusOptions().map(s => `<option value="${s}" ${task.status===s?'selected':''}>${s}</option>`).join('')}</select>
+                    </div>
+                    <div style="flex:2; min-width:200px;">
+                        <label>Note (optional)</label>
+                        <input class="form-control" id="statusNote" placeholder="e.g. waiting for review..." />
+                    </div>
+                    <button class="btn btn-primary" type="submit">Update</button>
+                </form>
+            </div>
+        ` : ''}
+        <div class="card">
+            <h4><i class="fas fa-history"></i> Audit Trail</h4>
+            ${task.auditTrail && task.auditTrail.length ? task.auditTrail.slice().reverse().map(a => `
+                <div class="audit-item">
+                    <strong>${a.user}</strong> changed from <strong>${a.from}</strong> → <strong>${a.to}</strong>
+                    ${a.note ? `<span style="color:#5a6a7a;">— ${a.note}</span>` : ''}
+                    <div class="time">${formatDate(a.timestamp)}</div>
+                </div>
+            `).join('') : '<p class="text-muted">No changes yet.</p>'}
+        </div>
+        <div class="card">
+            <h4><i class="fas fa-comments"></i> Comments</h4>
+            <div id="commentList">
+                ${task.comments && task.comments.length ? task.comments.map(c => `
+                    <div class="comment">
+                        <span class="author">${c.user}</span>
+                        <span class="time">${formatDate(c.timestamp)}</span>
+                        <p style="margin-top:4px;">${c.text}</p>
+                    </div>
+                `).join('') : '<p class="text-muted">No comments yet.</p>'}
+            </div>
+            <form id="commentForm" onsubmit="handleComment(event, '${task._id}')" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                <input class="form-control" id="commentInput" placeholder="Write a comment..." style="flex:1; min-width:200px;" required />
+                <button class="btn btn-primary btn-sm" type="submit"><i class="fas fa-paper-plane"></i> Post</button>
+            </form>
+        </div>
+    `;
+}
+
+async function renderCreateTask() {
+    if (state.user.role !== 'lead') return '<p class="text-muted">Only leads can create tasks.</p>';
+    const users = await getAllUsers();
+    return `
+        <h2 style="margin-bottom:16px;"><i class="fas fa-plus-circle"></i> Create New Task</h2>
+        <div class="card">
+            <form id="createTaskForm" onsubmit="handleCreateTask(event)">
+                <div class="form-group"><label>Title *</label><input class="form-control" id="taskTitle" placeholder="Task title" required /></div>
+                <div class="form-group"><label>Description</label><textarea class="form-control" id="taskDescription" placeholder="Describe the task..."></textarea></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Priority</label><select class="form-control" id="taskPriority">${getPriorityOptions().map(p => `<option value="${p}">${p}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>Deadline</label><input class="form-control" type="datetime-local" id="taskDeadline" /></div>
+                </div>
+                <div class="form-group">
+                    <label>Assignees (hold Ctrl/Cmd to select multiple)</label>
+                    <select class="form-control" id="taskAssignees" multiple style="height:100px;">
+                        ${users.map(u => `<option value="${u._id}">${u.name} (${u.role})</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group"><label>Tags (comma separated)</label><input class="form-control" id="taskTags" placeholder="e.g. frontend, bug, feature" /></div>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Create Task</button>
+                <a href="#" onclick="navigate('tasks')" class="btn btn-outline">Cancel</a>
+            </form>
+        </div>
+    `;
+}
+
+function renderMeetings() {
+    if (state.user.role !== 'lead') return '<p class="text-muted">Only leads can manage meetings.</p>';
+    const now = new Date();
+    const upcoming = state.meetings.filter(m => new Date(m.dateTime) > now).sort((a,b) => new Date(a.dateTime) - new Date(b.dateTime));
+    const past = state.meetings.filter(m => new Date(m.dateTime) <= now).sort((a,b) => new Date(b.dateTime) - new Date(a.dateTime));
+    return `
+        <div class="flex-between" style="margin-bottom:12px;">
+            <h2><i class="fas fa-calendar"></i> Meetings</h2>
+            <a href="#" onclick="navigate('createmeeting')" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Meeting</a>
+        </div>
+        <h3 style="margin-top:20px;">Upcoming</h3>
+        ${upcoming.length === 0 ? '<p class="text-muted">No upcoming meetings.</p>' : ''}
+        ${upcoming.map(m => meetingItemHTML(m)).join('')}
+        <h3 style="margin-top:24px;">Past</h3>
+        ${past.length === 0 ? '<p class="text-muted">No past meetings.</p>' : ''}
+        ${past.slice(0,10).map(m => meetingItemHTML(m)).join('')}
+    `;
+}
+
+async function renderCreateMeeting() {
+    if (state.user.role !== 'lead') return '<p class="text-muted">Only leads can create meetings.</p>';
+    const users = await getAllUsers();
+    return `
+        <h2 style="margin-bottom:16px;"><i class="fas fa-calendar-plus"></i> Create New Meeting</h2>
+        <div class="card">
+            <form id="createMeetingForm" onsubmit="handleCreateMeeting(event)">
+                <div class="form-group"><label>Title *</label><input class="form-control" id="meetingTitle" placeholder="Meeting title" required /></div>
+                <div class="form-group"><label>Agenda</label><textarea class="form-control" id="meetingAgenda" placeholder="What will be discussed?"></textarea></div>
+                <div class="form-group"><label>Date & Time *</label><input class="form-control" type="datetime-local" id="meetingDateTime" required /></div>
+                <div class="form-group">
+                    <label>Participants (hold Ctrl/Cmd to select multiple)</label>
+                    <select class="form-control" id="meetingParticipants" multiple style="height:100px;">
+                        ${users.map(u => `<option value="${u._id}">${u.name} (${u.role})</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group"><label><input type="checkbox" id="meetingRecurring" /> Recurring meeting</label></div>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Create Meeting</button>
+                <a href="#" onclick="navigate('meetings')" class="btn btn-outline">Cancel</a>
+            </form>
+        </div>
+    `;
+}
+
+function taskItemHTML(task, showAssignees = false, showStatusUpdate = false) {
+    const overdue = isOverdue(task.deadline) && task.status !== 'Done';
+    return `
+        <div class="task-item" style="${overdue ? 'border-left:4px solid #e74c3c;' : ''}">
+            <div class="task-info">
+                <h4><a href="#" onclick="viewTaskDetail('${task._id}')" style="color:#2c3e8f;">${task.title}</a> ${overdue ? '<span style="color:#e74c3c;font-size:0.8rem;">Overdue</span>' : ''}</h4>
+                <div class="task-meta">
+                    <span class="badge ${statusBadge(task.status)}">${task.status}</span>
+                    <span class="badge ${priorityBadge(task.priority)}">${task.priority}</span>
+                    <span>${formatDateShort(task.deadline)}</span>
+                    ${showAssignees && task.assignees && task.assignees.length ? `<span>${task.assignees.join(', ')}</span>` : ''}
+                    ${task.tags && task.tags.length ? task.tags.map(t => `<span class="tag">${t}</span>`).join(' ') : ''}
+                </div>
+            </div>
+            <div class="task-actions">
+                <a href="#" onclick="viewTaskDetail('${task._id}')" class="btn btn-primary btn-sm">View</a>
+                ${showStatusUpdate ? `
+                    <select onchange="quickStatusUpdate('${task._id}', this.value)" class="form-control" style="width:auto;padding:4px 8px;font-size:0.8rem;">
+                        <option value="">Update Status</option>
+                        ${getStatusOptions().map(s => `<option value="${s}">${s}</option>`).join('')}
+                    </select>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function meetingItemHTML(meeting) {
+    const isPast = new Date(meeting.dateTime) < new Date();
+    return `
+        <div class="meeting-item" style="${isPast ? 'opacity:0.7;' : ''}">
+            <h4>${meeting.title} ${meeting.recurring ? : ''}</h4>
+            <p style="color:#5a6a7a;">${meeting.agenda || 'No agenda'}</p>
+            <div class="task-meta">
+                <span>${formatDate(meeting.dateTime)}</span>
+                <span>${meeting.participants && meeting.participants.length ? meeting.participants.join(', ') : '—'}</span>
+                ${isPast ? '<span style="color:#7a8a9a;">(Past)</span>' : ''}
+            </div>
+        </div>
+    `;
+}
+
+function getUniqueAssignees(tasks) {
+    const map = {};
+    tasks.forEach(t => {
+        if (t.assignees) t.assignees.forEach(a => { if (!map[a]) map[a] = a; });
+    });
+    return Object.keys(map).map(id => ({ _id: id, name: id }));
+}
+
+async function navigate(view, data) {
+    state.currentView = view;
+    if (view === 'taskdetail' && data) state.selectedTaskId = data;
+    await renderApp();
+}
+function viewTaskDetail(taskId) { navigate('taskdetail', taskId); }
+
+function bindEvents() { }
+
+async function handleLogin(e) {
+    e.preventDefault();
+    await login(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value);
+}
+async function handleRegister(e) {
+    e.preventDefault();
+    await register(document.getElementById('regName').value, document.getElementById('regEmail').value,
+                   document.getElementById('regPassword').value, document.getElementById('regRole').value);
+}
+
+async function handleCreateTask(e) {
+    e.preventDefault();
+    const title = document.getElementById('taskTitle').value.trim();
+    if (!title) { showToast('Title is required', 'error'); return; }
+    const description = document.getElementById('taskDescription').value.trim();
+    const priority = document.getElementById('taskPriority').value;
+    const deadline = document.getElementById('taskDeadline').value;
+    const assignees = Array.from(document.getElementById('taskAssignees').selectedOptions).map(o => o.value);
+    const tags = document.getElementById('taskTags').value.split(',').map(s => s.trim()).filter(Boolean);
+    await createTask({ title, description, priority, deadline, assignees, tags });
+}
+async function handleStatusUpdate(e, taskId) {
+    e.preventDefault();
+    await updateTaskStatus(taskId, document.getElementById('statusSelect').value, document.getElementById('statusNote').value.trim());
+}
+async function quickStatusUpdate(taskId, status) {
+    if (!status) return;
+    await updateTaskStatus(taskId, status, '');
+}
+async function handleComment(e, taskId) {
+    e.preventDefault();
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
+    if (!text) { showToast('Please write a comment', 'error'); return; }
+    await addComment(taskId, text);
+    input.value = '';
+}
+
+async function handleCreateMeeting(e) {
+    e.preventDefault();
+    const title = document.getElementById('meetingTitle').value.trim();
+    if (!title) { showToast('Title is required', 'error'); return; }
+    const agenda = document.getElementById('meetingAgenda').value.trim();
+    const dateTime = document.getElementById('meetingDateTime').value;
+    const participants = Array.from(document.getElementById('meetingParticipants').selectedOptions).map(o => o.value);
+    const recurring = document.getElementById('meetingRecurring').checked;
+    await createMeeting({ title, agenda, dateTime, participants, recurring });
+}
+
+function applyFilters() {
+    const statusEl = document.getElementById('filterStatus');
+    const assigneeEl = document.getElementById('filterAssignee');
+    const sortEl = document.getElementById('sortBy');
+    if (statusEl) state.filterStatus = statusEl.value;
+    if (assigneeEl) state.filterAssignee = assigneeEl.value;
+    if (sortEl) state.sortBy = sortEl.value;
+    renderApp();
+}
+
+async function bootstrap() {
+    if (state.token) {
+        try {
+            const data = await apiCall('/auth/me', 'GET');
+            state.user = data.user;
+            await fetchTasks();
+            await fetchMeetings();
+            await renderApp();
+        } catch {
+            state.token = null;
+            localStorage.removeItem('token');
+            await renderApp();
+        }
+    } else {
+        await renderApp();
+    }
+}
+bootstrap();
+
+setInterval(async () => {
+    if (state.user) {
+        await fetchTasks();
+        await fetchMeetings();
+        if (!['taskdetail','createtask','createmeeting'].includes(state.currentView)) {
+            await renderApp();
+        }
+    }
+}, 30000);
+</script>
+</body>
+</html>
