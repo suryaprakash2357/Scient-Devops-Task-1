@@ -98,4 +98,4 @@ The `/api/reminders/trigger` endpoint is designed to be called periodically (e.g
 
 ## License
 
-No license specified.
+No license.
